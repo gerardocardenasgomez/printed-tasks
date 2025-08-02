@@ -6,9 +6,22 @@ from datetime import datetime
 from ascii_art import RANDOM_RECEIPT_ART
 
 from escpos.printer import Usb
+import atexit
 
 app = Flask(__name__)
 metrics = PrometheusMetrics(app)
+
+try:
+    p = Usb(0x0FE6, 0x811E, 0, profile="simple")
+    print("Printer initialized successfully")
+
+    def cleanup_printer():
+        if p:
+            p.close()
+            print("Printer closed successfully")
+    atexit.register(cleanup_printer)
+except Exception as e:
+    print(f"Ran into an issue during printer initialization")
 
 @app.route("/")
 def hello():
@@ -34,7 +47,6 @@ def print_task():
         print("Error: ", e)
         return jsonify({"error":"Something went wrong trying to get data"}), 400
     try:
-        p = Usb(0x0FE6, 0x811E, 0, profile="simple")
         if p is None:
             print("could not init printer")
             return jsonify({"error":"printer experienced an error"}), 503
@@ -49,6 +61,11 @@ def print_task():
         p.text("\n")
         p.text(selected_art)
         p.text("\n")
+        p.text("\n")
+        p.text("\n")
+        p.text("\n")
+        p.text("\n")
+        p.text("*** ~*~ ***\n")
         p.cut()
         p.close()
         print(f"Printed {task_name}")
