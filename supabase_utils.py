@@ -45,7 +45,7 @@ def add_task(task_name, task_description, task_priority, task_ai_response=None):
 
 def complete_task_by_id(id):
     if id is None:
-        print("heck")
+        print("Task ID Cannot be None")
         raise Exception("ID is None")
 
     supabase, user_id = get_supabase_client()
