@@ -1,21 +1,20 @@
 from ascii_art import RANDOM_RECEIPT_ART
 import random
 from datetime import datetime
-import configparser
 import requests
 from typing import List, Dict, Any
 import argparse
 from supabase_utils import add_task, search_tasks, complete_task_by_id
-
-config = configparser.ConfigParser()
-config.read("config.ini")
+from utils.utils import get_config
+import os
 ai_enabled = False
+
+config_path = os.path.join(os.path.dirname(__file__), "config.ini")
+config = get_config(config_path)
 
 if (config.has_section("GOOGLE")):
     google_api_key = config.get("GOOGLE", "GOOGLE_API_KEY")
     ai_enabled = True
-else:
-    print("No Google configuration found in config.ini")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', "--task_name", type=str, help="The name of the task to run", required=True)
