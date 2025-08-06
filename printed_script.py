@@ -5,6 +5,7 @@ import configparser
 import requests
 from typing import List, Dict, Any
 import argparse
+from supabase_utils import add_task, search_tasks, complete_task_by_id
 
 config = configparser.ConfigParser()
 config.read("config.ini")
