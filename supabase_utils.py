@@ -5,7 +5,15 @@ import configparser
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+_cached_supabase_client = None
+_cached_user_id = None
+
 def get_supabase_client():
+    global _cached_supabase_client, _cached_user_id
+
+    if _cached_supabase_client is not None and _cached_user_id is not None:
+        return (_cached_supabase_client, _cached_user_id)
+
     supabase_url = config.get("SUPABASE", "SUPABASE_URL")
     supabase_key = config.get("SUPABASE", "SUPABASE_API_KEY")
 
