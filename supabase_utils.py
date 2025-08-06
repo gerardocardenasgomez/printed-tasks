@@ -16,8 +16,8 @@ def get_supabase_client():
         "password": config.get("SUPABASE", "SUPABASE_USER_PASSWORD"),
     })
 
-    if 'error' in auth_response:
-        print(f"Error signing in: {auth_response}")
+    if hasattr(auth_response, "error") and auth_response.error:
+        print(f"Error signing in: {auth_response.error}")
         raise Exception("Error signing in")
 
     if not hasattr(auth_response, 'user') or not auth_response.user:
