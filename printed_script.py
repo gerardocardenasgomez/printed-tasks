@@ -48,6 +48,9 @@ task_name = args.task_name
 task_description = args.task_description
 task_priority = args.task_priority
 
+if ai_enabled:
+    ai_message = get_ai_response(task_description, google_api_key)
+
 print_url = config.get("API", "URL") + "/print"
 cut_url = config.get("API", "URL") + "/cut"
 
@@ -69,9 +72,8 @@ print(f"ASCII art print response: {response.text}")
 time.sleep(SLEEP_DELAY)
 
 # Print AI message if enabled
-if ai_enabled:
-    unwrapped_message = get_ai_response(task_description, google_api_key)
-    wrapped_message = printer_word_wrap(unwrapped_message)
+if ai_enabled and ai_message:
+    wrapped_message = printer_word_wrap(ai_message)
     
     # Split along newlines to avoid buffer overflow on printer
     line_count = wrapped_message.count('\n')
