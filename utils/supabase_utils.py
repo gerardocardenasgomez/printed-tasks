@@ -44,13 +44,14 @@ def get_supabase_client():
 
     return (supabase, auth_response.user.id)
 
-def add_task(task_name, task_description, task_priority, task_ai_response=None):
+def add_task(task_name, task_description, task_priority, task_header=None, task_ai_response=None):
     supabase, user_id = get_supabase_client()
     task = {
         "user_id": user_id,
         "task_name": task_name,
         "task_description": task_description,
         "task_priority": task_priority,
+        "task_header": task_header,
         # We do not set printed_on because the DB will generate this
     }
     
