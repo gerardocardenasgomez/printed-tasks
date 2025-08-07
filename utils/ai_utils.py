@@ -2,9 +2,10 @@ import requests
 ai_model = "gemini-2.0-flash"
 ai_url = f"https://generativelanguage.googleapis.com/v1beta/models/{ai_model}:generateContent"
 
-ai_message = "Keep up the great work on your tasks!"
 
 def get_ai_response(task_description: str, google_api_key: str, max_output_tokens: int = 150, temperature: float = 0.7):
+    ai_message = "Keep up the great work on your tasks!"
+
     try:
         ai_headers = {
             "X-goog-api-key": f"{google_api_key}",
