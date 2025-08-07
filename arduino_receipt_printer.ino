@@ -2,6 +2,7 @@
 #include "WiFiS3.h"
 #include "thingProperties.h"
 #include "EscPosCommands.h" // KEEP THIS INCLUDE!
+#include <cctype>
 
 // Define ESC/POS commands within the global scope (as they were in EscPosCommands.cpp)
 // It's better to keep them in a separate .cpp file (EscPosCommands.cpp) and compile it.
@@ -20,6 +21,54 @@ namespace EscPos{
     std::string BITMAP = {'\x1b', '\x2a'}; // Note: BITMAP usage is complex, needs m, nL, nH and image data
     std::string NO_LINE = {'\x1b', '\x33', (unsigned char) 0};
     std::string RESET_LINE = {'\x1b', '\x32'};
+
+    std::string BARCODE_PREFIX = {'\x1d', '\x6b', '\x49'};
+    std::string CODE128_START_A_SYMBOL = {'\x7b', '\x41'};
+    std::string BARCODE_12345678_TEST = {
+        '\x1d', '\x6b', '\x49', '\x0a', '\x7b', '\x41',
+        '\x31', '\x32', '\x33', '\x34', '\x35', '\x36', '\x37', '\x38'
+    };
+
+    std::string BARCODE_UPPERCASE_UUID_TEST = {
+        '\x1d', '\x6b', '\x49', '\x26', // GS k 0x49, length 0x26 (38)
+        '\x7b', '\x41', // Code128 Start Code A
+        // Uppercased UUID: 2268441F-55D4-4482-9BC2-3FC6754C30C5
+        '\x32', '\x32', '\x36', '\x38', '\x34', '\x34', '\x31', '\x46', // 2268441F (0x46 is 'F')
+        '\x2d', // - (0x2D)
+        '\x35', '\x35', '\x44', '\x34', // 55D4 (0x44 is 'D')
+        '\x2d', // -
+        '\x34', '\x34', '\x38', '\x32', // 4482
+        '\x2d', // -
+        '\x39', '\x42', '\x43', '\x32', // 9BC2 (0x42 is 'B', 0x43 is 'C')
+        '\x2d', // -
+        '\x33', '\x46', '\x43', '\x36', '\x37', '\x35', '\x34', '\x43', '\x33', '\x30', '\x43', '\x35' // 3FC6754C30C5 (0x46 'F', 0x43 'C')
+    };
+
+    // Alignment commands
+    std::string ALIGN_LEFT = {'\x1b', '\x61', '\x00'};
+    std::string ALIGN_CENTER = {'\x1b', '\x61', '\x01'};
+    std::string ALIGN_RIGHT = {'\x1b', '\x61', '\x02'};
+
+    std::string generateNumericCode128Barcode(const String& numericData) {
+        for (unsigned int i = 0; i < numericData.length(); ++i) { // Use unsigned int for length
+            if (!std::isdigit(numericData.charAt(i))) {
+                return ""; // Invalid input
+            }
+        }
+        // Use std::string internally for building the command as it's better for byte sequences
+        std::string command;
+        command.reserve(BARCODE_PREFIX.length() + 1 + CODE128_START_A_SYMBOL.length() + numericData.length());
+
+        command += BARCODE_PREFIX;
+        command += static_cast<char>(numericData.length() + CODE128_START_A_SYMBOL.length()); // Calculate n_byte_value directly
+        command += CODE128_START_A_SYMBOL;
+
+        // Append char by char from Arduino String to std::string
+        for (unsigned int i = 0; i < numericData.length(); ++i) {
+            command += numericData.charAt(i);
+        }
+        return command;
+    }
 }
 
 WiFiServer server(80);
@@ -50,14 +99,38 @@ String urlDecode(String input) {
     return decoded;
 }
 
-void sendHexString(String hexStr) {
-    Serial.println("Decoding hex string to printer:");
-    Serial.println(hexStr);
-    
-    for (int i = 0; i < hexStr.length(); i += 2) {
-        String byteStr = hexStr.substring(i, i + 2);
-        byte b = (byte) strtol(byteStr.c_str(), NULL, 16);
-        Serial1.write(b);
+namespace WebUtils {
+    String extractQueryParameter(const String& header, const String& requestPath, const String& paramName) {
+        String foundValue = "";
+        int getStartIndex = header.indexOf("GET " + requestPath + "?");
+        if (getStartIndex >= 0) {
+            int queryStartIndex = getStartIndex + String("GET ").length() + requestPath.length() + 1;
+            String queryString = header.substring(queryStartIndex);
+            int httpVersionIndex = queryString.indexOf(" HTTP/1.1");
+            if (httpVersionIndex >= 0) {
+                queryString = queryString.substring(0, httpVersionIndex);
+            }
+            String searchKey = paramName + "=";
+            int paramStart = 0;
+            int paramEnd = 0;
+            while (paramEnd != -1) {
+                paramEnd = queryString.indexOf('&', paramStart);
+                String param;
+                if (paramEnd == -1) {
+                    param = queryString.substring(paramStart);
+                } else {
+                    param = queryString.substring(paramStart, paramEnd);
+                }
+                if (param.startsWith(searchKey)) {
+                    foundValue = param.substring(searchKey.length());
+                    // If urlDecode is needed for /print, you'd call it here for textToPrint
+                    // For barcodeData, we explicitly decided against it.
+                    break;
+                }
+                paramStart = paramEnd + 1;
+            }
+        }
+        return foundValue;
     }
 }
 
@@ -105,7 +178,7 @@ void loop() {
             if (header.indexOf("GET /print") >= 0) {
               Serial.println("Processing /print request.");
               
-              int queryStartIndex = header.indexOf("GET /print?") + String("GET /print?").length();
+              int queryStartIndex = header.indexOf("GET /print?") + 11;
               
               if (queryStartIndex >= 11) {
                   String queryString = header.substring(queryStartIndex);
@@ -147,22 +220,14 @@ void loop() {
               Serial.println("\n--- Sending to Physical Printer (Serial1) ---");
               
               // Optional: Initialize printer before each print job
-              //Serial1.write(EscPos::RESET.c_str(), EscPos::RESET.length()); 
-              //delay(100); // Give printer a moment after reset
+              Serial1.write(EscPos::RESET.c_str(), EscPos::RESET.length()); 
+              delay(100); // Give printer a moment after reset
 
               // You can apply formatting here, e.g.:
               // Serial1.write(EscPos::BOLD_ON.c_str(), EscPos::BOLD_ON.length());
               // Serial1.write(EscPos::FONT_B.c_str(), EscPos::FONT_B.length());
               
-              // After parsing printText, check if it's a hex-encoded command
-              if (printText.startsWith("hex:")) {
-                  // Remove "hex:" prefix and send as raw bytes
-                  String hexData = printText.substring(4);
-                  sendHexString(hexData);
-              } else {
-                  // Regular text
-                  Serial1.print(printText);
-              }
+              Serial1.print(printText); // Send the actual decoded text to printer
 
               // Optional: Add a small delay for the printer to finish before closing connection
               delay(500); 
@@ -182,7 +247,7 @@ void loop() {
               client.println("Connection: close");
               client.println();
               client.println("<!DOCTYPE HTML>");
-              client.println("<html><body><h1>Arduino Printer Server</h1>");
+              client.println("<html><body><h1>Arduino Printer Server v0.0.8</h1>");
               client.println("<p>Send text to: <code>http://YOUR_ARDUINO_IP/print?text=Hello%20World%26priority=1</code></p>");
               client.println("<p>Visit <a href=\"/print?text=Test&priority=0\">/print</a> for a quick test.</p>");
               client.println("</body></html>");
@@ -203,6 +268,68 @@ void loop() {
               Serial1.write(EscPos::CUT.c_str(), EscPos::CUT.length());
               Serial.println(" Cut command sent.");
               
+            } else if (header.indexOf("GET /barcode?") >= 0) {
+              client.println("HTTP/1.1 200 OK");
+              client.println("Content-Type: text/html");
+              client.println("Connection: close");
+              client.println();
+              client.println("<!DOCTYPE HTML>");
+              client.println("<html><body><h1>Arduino Printer Server</h1>");
+              client.println("<p>BARCODE Processed</p>");
+              
+              Serial.println("/barcode test."); // Short debug print
+              String barcodeData = WebUtils::extractQueryParameter(header, "/barcode", "barcode");
+
+              if (!barcodeData.isEmpty()) {
+                  client.print("<p>Test for: "); client.print(barcodeData); client.println("</p>");
+                  Serial.print("Test for: "); Serial.println(barcodeData);
+
+                  std::string generatedCommand = EscPos::generateNumericCode128Barcode(barcodeData);
+
+                  // Compare only if the input is "12345678"
+                  if (!generatedCommand.empty()) {
+                      Serial1.write(EscPos::ALIGN_CENTER.c_str(), EscPos::ALIGN_CENTER.length());
+                      delay(10);
+                      Serial1.write(generatedCommand.c_str(), generatedCommand.length());
+                      delay(10);
+                      Serial1.write("\n");
+                      delay(10);
+                      Serial1.write(EscPos::ALIGN_LEFT.c_str(), EscPos::ALIGN_LEFT.length());
+                      delay(10);
+                      Serial1.write(EscPos::RESET.c_str(), EscPos::RESET.length());
+                      delay(50);
+                      client.println("<p>Barcode command sent to printer.</p>");
+                  } else {
+                      // For other numeric inputs, just confirm it was generated
+                      client.println("<p>Generated command for input (not 12345678).</p>");
+                      Serial.println("Generated for other input.");
+                  }
+              } else {
+                  client.println("<p>Error: No barcode data or non-numeric.</p>");
+                  Serial.println("Error: No data/non-numeric.");
+              }
+              client.println("</body></html>");
+            } else if (header.indexOf("GET /barcode/uuid_static_test") >= 0) {
+                Serial.println("Processing /barcode/uuid_static_test (STATIC UUID PRINT ATTEMPT).");
+                client.println("HTTP/1.1 200 OK");
+                client.println("Content-Type: text/html");
+                client.println("Connection: close");
+                client.println();
+                client.println("<!DOCTYPE HTML><html><body><h1>Arduino Printer Server</h1>");
+                client.println("<p>Attempting to print STATIC UPPERCASE UUID Barcode.</p>");
+
+                // --- CRITICAL: Send the static string directly to the printer ---
+                Serial1.write(EscPos::BARCODE_UPPERCASE_UUID_TEST.c_str(), EscPos::BARCODE_UPPERCASE_UUID_TEST.length());
+                delay(10);
+                Serial1.write("\n"); // Newline is CRITICAL
+                delay(10);
+                Serial1.write(EscPos::RESET.c_str(), EscPos::RESET.length()); // RESET is CRITICAL
+                delay(50);
+
+                client.println("<p>Uppercase UUID Barcode command sent to printer. It failed. Leaving this here for later maybe.</p>");
+                Serial.println("Uppercase UUID Barcode command sent.");
+
+                client.println("</body></html>");
             } else {
               Serial.println("Request for unknown path (404).");
               client.println("HTTP/1.1 404 Not Found");

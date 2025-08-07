@@ -113,6 +113,10 @@ if task_id:
     # we should print the task_id bare
     response = requests.get(print_url, params={"text": "\n\n" + task_id + "\n\n"})
 
+# Print a cute tailing line hehe
+response = requests.get(print_url, params={"text": "\n\n" + "*** ~*~ ***" + "\n\n"})
+
 # Cut the paper
 response = requests.get(cut_url)
 print(f"Cut response: {response.text}")
+
