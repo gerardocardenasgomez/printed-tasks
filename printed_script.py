@@ -68,7 +68,7 @@ print(f"Header print response: {response.text}")
 time.sleep(SLEEP_DELAY)
 
 ascii_art = random.choice(RANDOM_RECEIPT_ART)
-response = requests.get(print_url, params={"text": ascii_art})
+response = requests.get(print_url, params={"text": ascii_art + "\n\n"})
 print(f"ASCII art print response: {response.text}")
 time.sleep(SLEEP_DELAY)
 
