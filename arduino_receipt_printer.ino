@@ -50,6 +50,17 @@ String urlDecode(String input) {
     return decoded;
 }
 
+void sendHexString(String hexStr) {
+    Serial.println("Decoding hex string to printer:");
+    Serial.println(hexStr);
+    
+    for (int i = 0; i < hexStr.length(); i += 2) {
+        String byteStr = hexStr.substring(i, i + 2);
+        byte b = (byte) strtol(byteStr.c_str(), NULL, 16);
+        Serial1.write(b);
+    }
+}
+
 void setup() {
   Serial.begin(115200); // Use 115200 for debug monitor
   Serial1.begin(9600); // Set to your printer's baud rate for Serial1
@@ -143,7 +154,15 @@ void loop() {
               // Serial1.write(EscPos::BOLD_ON.c_str(), EscPos::BOLD_ON.length());
               // Serial1.write(EscPos::FONT_B.c_str(), EscPos::FONT_B.length());
               
-              Serial1.print(printText); // Send the actual decoded text to printer
+              // After parsing printText, check if it's a hex-encoded command
+              if (printText.startsWith("hex:")) {
+                  // Remove "hex:" prefix and send as raw bytes
+                  String hexData = printText.substring(4);
+                  sendHexString(hexData);
+              } else {
+                  // Regular text
+                  Serial1.print(printText);
+              }
 
               // Optional: Add a small delay for the printer to finish before closing connection
               delay(500); 
