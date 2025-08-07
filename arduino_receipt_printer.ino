@@ -147,8 +147,8 @@ void loop() {
               Serial.println("\n--- Sending to Physical Printer (Serial1) ---");
               
               // Optional: Initialize printer before each print job
-              Serial1.write(EscPos::RESET.c_str(), EscPos::RESET.length()); 
-              delay(100); // Give printer a moment after reset
+              //Serial1.write(EscPos::RESET.c_str(), EscPos::RESET.length()); 
+              //delay(100); // Give printer a moment after reset
 
               // You can apply formatting here, e.g.:
               // Serial1.write(EscPos::BOLD_ON.c_str(), EscPos::BOLD_ON.length());

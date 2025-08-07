@@ -61,8 +61,9 @@ if supabase_enabled:
 # First print header
 # We do not need to wrap this because look how many new lines we have!
 header_text = f"{task_header}\nTASK: {task_name}\nTASK_DESC: {task_description}\n\nPRIORITY: {task_priority}\nPRINTED_ON: {task_printed_on}\n\n"
+wrapped_header_text = printer_word_wrap(header_text)
 
-response = requests.get(print_url, params={"text": header_text})
+response = requests.get(print_url, params={"text": wrapped_header_text})
 print(f"Header print response: {response.text}")
 time.sleep(SLEEP_DELAY)
 
@@ -99,12 +100,13 @@ if ai_enabled and ai_message:
         time.sleep(SLEEP_DELAY)
 
 # Print BARCODE
-if task_id:
-    # Debug by sending more simple text
-    barcode_cmd = get_barcode(task_id)
-    response = requests.get(print_url, params={"text": "ABCD123DEF456"})
-    print(f"Barcode print response: {response.text}")
-    time.sleep(SLEEP_DELAY)
+#if task_id:
+#    # Debug by sending more simple text
+#    #barcode_cmd = get_barcode(task_id)
+#    debug_barcode_cmd = get_barcode("ABCD123DEF456")
+#    response = requests.get(print_url, params={"text": debug_barcode_cmd})
+#    print(f"Barcode print response: {response.text}")
+#    time.sleep(SLEEP_DELAY)
 
 if task_id:
     # if we printed a barcode, we need a bit of space before the cut
