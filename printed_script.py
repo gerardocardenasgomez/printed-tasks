@@ -43,14 +43,10 @@ print("Getting Ready to Print Task")
 
 # Task header will act as versioning basically
 task_header = "ADVANCED TASK MANAGEMENT SYSTEM V1.0"
-task_pinted_on = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+task_printed_on = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 task_name = args.task_name
 task_description = args.task_description
 task_priority = args.task_priority
-
-
-if ai_enabled:
-    ai_message = get_ai_response(task_description, google_api_key)
 
 print_url = config.get("API", "URL") + "/print"
 cut_url = config.get("API", "URL") + "/cut"
@@ -61,7 +57,7 @@ if supabase_enabled:
 
 # First print header
 # We do not need to wrap this because look how many new lines we have!
-header_text = f"{task_header}\nTASK: {task_name}\nTASK_DESC: {task_description}\n\nPRIORITY: {task_priority}\nPRINTED_ON: {task_pinted_on}\n\n"
+header_text = f"{task_header}\nTASK: {task_name}\nTASK_DESC: {task_description}\n\nPRIORITY: {task_priority}\nPRINTED_ON: {task_printed_on}\n\n"
 
 response = requests.get(print_url, params={"text": header_text})
 print(f"Header print response: {response.text}")
@@ -73,7 +69,7 @@ print(f"ASCII art print response: {response.text}")
 time.sleep(SLEEP_DELAY)
 
 # Print AI message if enabled
-if ai_enabled and ai_message:
+if ai_enabled:
     unwrapped_message = get_ai_response(task_description, google_api_key)
     wrapped_message = printer_word_wrap(unwrapped_message)
     
