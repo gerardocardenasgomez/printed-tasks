@@ -105,7 +105,7 @@ void loop() {
             if (header.indexOf("GET /print") >= 0) {
               Serial.println("Processing /print request.");
               
-              int queryStartIndex = header.indexOf("GET /print?") + 11;
+              int queryStartIndex = header.indexOf("GET /print?") + String("GET /print?").length();
               
               if (queryStartIndex >= 11) {
                   String queryString = header.substring(queryStartIndex);
