@@ -9,7 +9,7 @@ from utils.utils import get_config, printer_word_wrap, get_barcode
 from utils.ai_utils import get_ai_response
 import time
 
-SLEEP_DELAY = 0.5
+SLEEP_DELAY = 0.2
 ai_enabled = False
 supabase_enabled = False
 task_id = None
@@ -53,10 +53,11 @@ if ai_enabled:
 
 print_url = config.get("API", "URL") + "/print"
 cut_url = config.get("API", "URL") + "/cut"
+barcode_url = config.get("API", "URL") + "/barcode"
 
 if supabase_enabled:
     init_supabase_config(supabase_url, supabase_key, user_email, user_password)
-    task_id = add_task(task_name, task_description, task_priority, task_header, ai_message)
+    task_id, task_barcode_id = add_task(task_name, task_description, task_priority, task_header, ai_message)
 
 # First print header
 # We do not need to wrap this because look how many new lines we have!
@@ -91,7 +92,7 @@ if ai_enabled and ai_message:
         time.sleep(SLEEP_DELAY)
         
         response = requests.get(print_url, params={"text": second_half})
-        print(f"AI message second half print response: {response.text}")
+        print(f"AI message second half print response: {response.text}" + "\n\n")
         time.sleep(SLEEP_DELAY)
     else:
         # Single line, print as-is
@@ -107,6 +108,11 @@ if ai_enabled and ai_message:
 #    response = requests.get(print_url, params={"text": debug_barcode_cmd})
 #    print(f"Barcode print response: {response.text}")
 #    time.sleep(SLEEP_DELAY)
+
+if task_barcode_id:
+    response = requests.get(barcode_url, params={"barcode": int(task_barcode_id)})
+    print(f"Barcode print response: {response.text}")
+    time.sleep(SLEEP_DELAY)
 
 if task_id:
     # if we printed a barcode, we need a bit of space before the cut

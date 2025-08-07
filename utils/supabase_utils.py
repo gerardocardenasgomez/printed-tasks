@@ -60,7 +60,7 @@ def add_task(task_name, task_description, task_priority, task_header=None, task_
 
     response = supabase.table("tasks").insert(task).execute()
     print(response)
-    return response.data[0]["id"]
+    return response.data[0]["id"], response.data[0]["task_barcode_id"]
 
 def complete_task_by_id(id):
     if id is None:
