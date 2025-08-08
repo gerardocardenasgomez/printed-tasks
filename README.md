@@ -40,7 +40,7 @@ The Arduino code runs an HTTP server that listens on port 80 and supports these 
 This is a commandline script you can use:
 
 ```
-$ python3 printed_script.py -n "<task name" -d "<task description>" -p "<task priority>"
+$ python3 printed_script.py -n "<task name>" -d "<task description>" -p "<task priority>"
 ```
 
 Here's an example:
@@ -67,7 +67,7 @@ Click on GET API key
 
 Most of the models have a free tier. I set up one that has a generous free tier and that's good enough for generating some encouraging message about the task you create. Feel free to edit the AI prompt if you want! That's going to be in `/utils/ai_utils.py` somewhere around Line 20.
 
-There's currently an issue where the AI's reponse gets cut off when printed on the receipt. I think that's an issue with my splitting code? I will review this. :-)
+There's currently an issue where the AI's response gets cut off when printed on the receipt. I think that's an issue with my splitting code? I will review this. :-)
 
 ### Supabase Integration
 
