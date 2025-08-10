@@ -113,7 +113,8 @@ app.get('/barcode/:task_barcode_id', async (c) => {
 
     if (fetchError) {
       console.log(fetchError)
-      return c.text(`Error fetching task: ${fetchError.details}`, 500)
+      const errorMessage = fetchError?.details ?? fetchError?.message ?? 'Unknown error';
+      return c.text(`Error fetching task: ${errorMessage}`, 500)
     }
 
     // I think this will never be reached because fetchError will be thrown if the task does not exist
@@ -133,8 +134,9 @@ app.get('/barcode/:task_barcode_id', async (c) => {
         .eq('task_barcode_id', taskBarcodeId)
 
     if (updateError) {
+      const errorMessage = updateError?.details ?? updateError?.message ?? 'Unknown error';
       console.log(updateError)
-      return c.text(`Error updating task: ${updateError.details}`, 500)
+      return c.text(`Error updating task: ${errorMessage}`, 500)
     }
 
     return c.json({ success: true, message: 'Task marked as completed! GOOD JOB!!! :-D' })
