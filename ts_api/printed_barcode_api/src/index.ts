@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from './database.types'
+import { bearerAuth } from 'hono/bearer-auth'
 
 const SUPABASE_USER_PASSWORD = process.env.SUPABASE_USER_PASSWORD!
 const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY!
@@ -8,7 +9,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL!
 const SUPABASE_USER_EMAIL = process.env.SUPABASE_USER_EMAIL!
 const BARCODE_API_KEY = process.env.BARCODE_API_KEY!
 
+const token = BARCODE_API_KEY;
+
 const app = new Hono()
+
+// Apply bearer authentication to all /barcode/ routes
+// Clients must include: Authorization: Bearer <BARCODE_API_KEY>
+app.use('/barcode/*', bearerAuth({ token }))
 
 // Simple in-memory rate limiting for local use
 const requestCounts = new Map<string, { count: number; resetTime: number }>()
@@ -78,7 +85,7 @@ app.get('/', (c) => {
   return c.text('yo the barcode API is running :-)')
 })
 
-app.get('/barcode/:api_key/:task_barcode_id', async (c) => {
+app.get('/barcode/:task_barcode_id', async (c) => {
   // DOes this rate limiting work IDK bro
   const clientIP = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown'
   if (!checkRateLimit(clientIP)) {
@@ -86,12 +93,7 @@ app.get('/barcode/:api_key/:task_barcode_id', async (c) => {
     return c.text('Too many requests', 429)
   }
 
-  const providedKey = c.req.param('api_key')
   const taskBarcodeIdParam = c.req.param('task_barcode_id')
-
-  if (!providedKey || providedKey !== BARCODE_API_KEY) {
-    return c.text('Invalid API key', 401)
-  }
 
   const taskBarcodeId = parseInt(taskBarcodeIdParam)
   if (isNaN(taskBarcodeId) || taskBarcodeId <= 0) {
@@ -110,13 +112,17 @@ app.get('/barcode/:api_key/:task_barcode_id', async (c) => {
         .single()
 
     if (fetchError) {
-      return c.text(`Error fetching task: ${fetchError.message}`, 500)
+      console.log(fetchError)
+      const errorMessage = fetchError?.details ?? fetchError?.message ?? 'Unknown error';
+      return c.text(`Error fetching task: ${errorMessage}`, 500)
     }
 
+    // I think this will never be reached because fetchError will be thrown if the task does not exist
+    // will figure this out later
     if (!existingTask) {
       const attemptedUrl = c.req.url
       console.log(`Task not found for barcode ID ${taskBarcodeId} - URL: ${attemptedUrl}`)
-      return c.text(`Task not found for barcode ID: ${taskBarcodeId}. Attempted URL: ${attemptedUrl}`, 404)
+      return c.json({"message": `Task not found for barcode ID: ${taskBarcodeId}`}, 404)
     }
 
     const { error: updateError } = await supabase
@@ -128,7 +134,9 @@ app.get('/barcode/:api_key/:task_barcode_id', async (c) => {
         .eq('task_barcode_id', taskBarcodeId)
 
     if (updateError) {
-      return c.text(`Error updating task: ${updateError.message}`, 500)
+      const errorMessage = updateError?.details ?? updateError?.message ?? 'Unknown error';
+      console.log(updateError)
+      return c.text(`Error updating task: ${errorMessage}`, 500)
     }
 
     return c.json({ success: true, message: 'Task marked as completed! GOOD JOB!!! :-D' })
@@ -146,12 +154,15 @@ app.all('*', (c) => {
   
 Available endpoints:
 - GET / (API status)
-- GET /barcode/<api_key>/<task_barcode_id> (mark task complete)
+- GET /barcode/<task_barcode_id> (mark task complete) - Requires Bearer token authentication
 
 Your URL: ${url}
-Expected format: /barcode/YOUR_API_KEY/BARCODE_ID
+Expected format: /barcode/TASK_BARCODE_ID
+Authentication: Include 'Authorization: Bearer YOUR_API_KEY' header
 
-Example: /barcode/mykey123/42`
+Example: 
+  URL: /barcode/42
+  Header: Authorization: Bearer your_api_key_here`
 
   console.log(`404 - Unmatched route: ${method} ${url}`)
   return c.text(message, 404)
