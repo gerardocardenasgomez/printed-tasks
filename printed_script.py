@@ -77,6 +77,7 @@ time.sleep(SLEEP_DELAY)
 if ai_enabled and ai_message:
     wrapped_message = printer_word_wrap(ai_message)
     response = requests.get(print_url, params={"text": wrapped_message})
+    print(f"AI message: {response.text}")
     
 #    # Split along newlines to avoid buffer overflow on printer
 #    line_count = wrapped_message.count('\n')
