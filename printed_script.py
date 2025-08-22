@@ -76,29 +76,30 @@ time.sleep(SLEEP_DELAY)
 # Print AI message if enabled
 if ai_enabled and ai_message:
     wrapped_message = printer_word_wrap(ai_message)
+    response = requests.get(print_url, params={"text": wrapped_message})
     
-    # Split along newlines to avoid buffer overflow on printer
-    line_count = wrapped_message.count('\n')
-    
-    if line_count > 1:
-        lines = wrapped_message.split('\n')
-        mid_point = len(lines) // 2
-        
-        first_half = '\n'.join(lines[:mid_point]) + '\n'
-        second_half = '\n'.join(lines[mid_point:])
-        
-        response = requests.get(print_url, params={"text": first_half})
-        print(f"AI message first half print response: {response.text}")
-        time.sleep(SLEEP_DELAY)
-        
-        response = requests.get(print_url, params={"text": second_half})
-        print(f"AI message second half print response: {response.text}" + "\n\n")
-        time.sleep(SLEEP_DELAY)
-    else:
-        # Single line, print as-is
-        response = requests.get(print_url, params={"text": wrapped_message})
-        print(f"AI message print response: {response.text}")
-        time.sleep(SLEEP_DELAY)
+#    # Split along newlines to avoid buffer overflow on printer
+#    line_count = wrapped_message.count('\n')
+#    
+#    if line_count > 1:
+#        lines = wrapped_message.split('\n')
+#        mid_point = len(lines) // 2
+#        
+#        first_half = '\n'.join(lines[:mid_point]) + '\n'
+#        second_half = '\n'.join(lines[mid_point:])
+#        
+#        response = requests.get(print_url, params={"text": first_half})
+#        print(f"AI message first half print response: {response.text}")
+#        time.sleep(SLEEP_DELAY)
+#        
+#        response = requests.get(print_url, params={"text": second_half})
+#        print(f"AI message second half print response: {response.text}" + "\n\n")
+#        time.sleep(SLEEP_DELAY)
+#    else:
+#        # Single line, print as-is
+#        response = requests.get(print_url, params={"text": wrapped_message})
+#        print(f"AI message print response: {response.text}")
+#        time.sleep(SLEEP_DELAY)
 
 # Print BARCODE
 #if task_id:
